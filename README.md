@@ -2,7 +2,7 @@
 
 IoT project for a smart Access Control.
 
-Sources:
-http://gpiozero.readthedocs.io/en/stable/recipes.html
-https://gpiozero.readthedocs.io/en/stable/api_input.html
-https://www.raspberrypi.org/documentation/usage/webcams/
+Sources: \n
+http://gpiozero.readthedocs.io/en/stable/recipes.html \n
+https://gpiozero.readthedocs.io/en/stable/api_input.html \n
+https://www.raspberrypi.org/documentation/usage/webcams/ \n
