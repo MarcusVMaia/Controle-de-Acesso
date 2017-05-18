@@ -1,84 +1,97 @@
 #! /usr/bin/python3
 
-import socket
+import socket, json
 import sys
 import http, http.client, urllib.parse
 from _thread import *
 
-
-# conn = http.client.HTTPConnection("bugs.python.org")
-# params = urllib.parse.urlencode({'@number': 12524, '@type': 'issue', '@action': 'show'})
-# headers = {"content-type": "application/json","Accept":"application/json"}
-# conn.request("POST", "/cebola", params, headers)
-# response = conn.getresponse()
-# print(response.status, response.reason)
-
 # Connect to RAISe
-conn = http.client.HTTPConnection('homol.redes.unb.br/uiot-raise')
+raise_conn = http.client.HTTPConnection('homol.redes.unb.br')
 
 #Auto-registro
 #Client Request
-params = urllib.parse.urlencode({
+params = json.dumps({
   "name": "ControleAcesso",
-  "chipset": "AMD 790FX",
+  "chipset": "RaspberryPi3",
   "mac": "FF:FF:FF:FF:FF:FF",
   "serial": "C210",
   "processor": "Intel I3",
   "channel": "Ethernet",
   "client_time": 1317427200,
   "tag": [
-    "cebola"
+    "controle de acesso",
+    "topicos"
   ]
 })
-headers = {"content-type": "application/json","Accept":"application/json"}
-conn.request("POST", "/client/register", params, headers)
-response = conn.getresponse()
-print(response.status)
-#data = response.read()
-#ID = data.token
+
+headers = {"content-type": "application/json" , "Accept": "application/json"}
+raise_conn.request("POST", "/uiot-raise/client/register", params, headers)
+response = raise_conn.getresponse()
+data = json.loads(response.read().decode("utf-8"))
+print(data)
+print(data['code'], data['message'], data['tokenId'])
 
 #Service Request
-# params = urllib.parse.urlencode({
-#   "services": [
-#     {
-#       "name": "Get temp",
-#       "parameters": {
-#         "example_parameter": "float"
-#       },
-#       "return_type": "float"
-#     }
-#   ],
-#   "tokenId": "4c9adfb96a364c6805b28f90a342b65c",
-#   "client_time": 1317427200,
-#   "tag": [
-#     "Cebola"
-#   ]
-# })
-# conn.request("POST", "", params)
-# response = conn.getresponse()
-# data = response.read()
-# ID = data.token
+params = json.dumps({
+  "services": [
+    {
+      "name": "Give personal temperature preference",
+      "parameters": {
+        "name": "string"
+      },
+      "return_type": "float"
+    },
+    {
+      "name": "Give personal illumination preference",
+      "parameters": {
+        "name": "string"
+      },
+      "return_type": "float"
+    },
+    {
+      "name": "Give door state",
+      "parameters": {},
+      "return_type": "bool"
+    },
+    {
+      "name": "Who's in the env",
+      "parameters": {},
+      "return_type": "string []"
+    }
+  ],
+  "tokenId": "bbb2a04f09d08e5b9f0a45b17b383651",
+  "client_time": 1317427200,
+  "tag": [
+    "functions"
+  ]
+})
+raise_conn.request("POST", "/uiot-raise/service/register", params, headers)
+response = raise_conn.getresponse()
+data = json.loads(response.read().decode("utf-8"))
+print(data)
+print(data['code'], data['message'])
 
-# #Data Request
-# params = urllib.parse.urlencode({
-#   "token": "4c9adfb96a364c6805b28f90a342b65c",
-#   "client_time": 342343242,
-#   "tag": [
-#     "Cebola"
-#   ],
-#   "data": [
-#     {
-#       "service_id": 0,
-#       "data_values": {
-#         "press": 35
-#       }
-#     }
-#   ]
-# })
-# conn.request("POST", "", params)
-# response = conn.getresponse()
-# data = response.read()
-# ID = data.token
+#Data Request
+params = json.dumps({
+  "token": "bbb2a04f09d08e5b9f0a45b17b383651",
+  "client_time": 342343242,
+  "tag": [
+    "attributes"
+  ],
+  "data": [
+    {
+      "service_id": 0,
+      "data_values": {
+        "press": 35
+      }
+    }
+  ]
+})
+raise_conn.request("POST", "/uiot-raise/data/register", params, headers)
+response = raise_conn.getresponse()
+data = json.loads(response.read().decode("utf-8"))
+print(data)
+print(data['code'], data['message'])
 
 
 host = '127.0.0.1'
