@@ -97,6 +97,7 @@ print(data['code'], data['message'])
 host = '127.0.0.1'
 port = 5005
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_conns = []
 
 try:
 	s.bind((host, port))
@@ -110,18 +111,22 @@ def threaded_client(conn):
 	conn.send(str.encode('Welcome, type your info\n'))
 
 	while True:
-		data = conn.recv(1024)
-		print(data) #linha adicionada para debugar
-		reply = 'Server output: '+ data.decode('utf-8')
-		if not data:
-			break
-		conn.send(data)
-		#conn.close() estava gerando um erro [Errno 9] bad file descriptor, reconectando a um socket que foi fechado
+		variable = 0
+		#data = conn.recv(1024)
+		#print(data)
+		#conn.send(data)
+		#conn.close() #estava gerando um erro [Errno 9] bad file descriptor, reconectando a um socket que foi fechado
 
+#listening
 while True:
-
 	conn, addr = s.accept()
 	print('connected to: '+addr[0]+':'+str(addr[1]))
+
+	client_conns.append(conn)
+	if len(client_conns)>2: 
+		client_conns[0].send(str.encode('This is the keyboard\n'))
+		client_conns[1].send(str.encode('This is the bt\n'))
+		client_conns[2].send(str.encode('This is the camera\n'))
 
 	start_new_thread(threaded_client,(conn,))
 
