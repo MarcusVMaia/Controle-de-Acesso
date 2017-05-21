@@ -1,14 +1,14 @@
 #! /usr/bin/python3
 
 import socket, json
-import sys
+import subprocess, sys, shlex
 import http, http.client, urllib.parse
 from _thread import *
 
 # Connect to RAISe
 raise_conn = http.client.HTTPConnection('homol.redes.unb.br')
 
-#Auto-registro
+###################Auto-registro#########################
 #Client Request
 params = json.dumps({
   "name": "ControleAcesso",
@@ -93,7 +93,14 @@ data = json.loads(response.read().decode("utf-8"))
 print(data)
 print(data['code'], data['message'])
 
+###################Fim do Auto-Registro#################
 
+# Bluetooth Perl Setup
+perl = "/usr/bin/perl" #perl path 
+perl_script = "/home/marcusvmaia/Controle_de_Acesso/test.pl"	#script path
+
+
+#Server Setup
 host = '127.0.0.1'
 port = 5005
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -119,15 +126,26 @@ def threaded_client(conn):
 
 #listening
 while True:
+
 	conn, addr = s.accept()
 	print('connected to: '+addr[0]+':'+str(addr[1]))
-
-	client_conns.append(conn)
-	if len(client_conns)>2: 
-		client_conns[0].send(str.encode('This is the keyboard\n'))
-		client_conns[1].send(str.encode('This is the bt\n'))
-		client_conns[2].send(str.encode('This is the camera\n'))
-
 	start_new_thread(threaded_client,(conn,))
+	client_conns.append(conn) #add to collection of clientes
+
+	#If all peripherals are connected
+	if len(client_conns)>1: 
+		client_conns[0].send(str.encode('This is the keyboard\n'))
+		client_conns[1].send(str.encode('This is the camera\n'))
+		
+		while True:
+
+			####### MAIN ALGORITHM #######
+
+			pl_script = subprocess.Popen([perl, perl_script], stdout=subprocess.PIPE)
+			output = pl_script.communicate()
+			BT_json = json.loads(output[0].decode("utf-8"))
+			print(BT_json)
+
+			##### END MAIN ALGORITHM #####
 
 raise_conn.close()
