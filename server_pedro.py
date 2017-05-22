@@ -95,9 +95,10 @@ print(data['code'], data['message'])
 
 ###################Fim do Auto-Registro#################
 
-# Bluetooth Perl Setup
+# Bluetooth Setup
 perl = "/usr/bin/perl" #perl path 
 perl_script = "/home/marcusvmaia/Controle_de_Acesso/test.pl"	#script path
+bt_count = 1002
 
 
 #Server Setup
@@ -115,8 +116,6 @@ s.listen(5)
 print('Waiting for connection.')
 
 def threaded_client(conn):
-	conn.send(str.encode('Welcome, type your info\n'))
-
 	while True:
 		variable = 0
 		#data = conn.recv(1024)
@@ -134,18 +133,35 @@ while True:
 
 	#If all peripherals are connected
 	if len(client_conns)>1: 
-		client_conns[0].send(str.encode('This is the keyboard\n'))
-		client_conns[1].send(str.encode('This is the camera\n'))
+		#client_conns[0].send(str.encode('This is the keyboard\n'))
+		#client_conns[1].send(str.encode('This is the camera\n'))
 		
 		while True:
 
 			####### MAIN ALGORITHM #######
+			
+			password = client_conns[0].recv(6).decode("utf-8")
+			if password!="NOPASS":	#caso senha seja enviada
+				print("Senha recebida...")
+				print(password)
+				#validate password
+				#if valid_password:
+					#call facial recognition on BT_json["deviceList"][0]["MAC"], BT_json["deviceList"][1]["MAC"]
+					#if authenticated OPEN DOOR, else doesn't
+			else:										#caso senha nao seja enviada
+				if bt_count>1000:
+					bt_count = 0
+					pl_script = subprocess.Popen([perl, perl_script], stdout=subprocess.PIPE)
+					output = pl_script.communicate()
+					BT_json = json.loads(output[0].decode("utf-8"))
+					print("Bluetooth: ",BT_json)
+				else:
+					bt_count = bt_count+1
 
-			pl_script = subprocess.Popen([perl, perl_script], stdout=subprocess.PIPE)
-			output = pl_script.communicate()
-			BT_json = json.loads(output[0].decode("utf-8"))
-			print(BT_json)
-
+				if len(BT_json["deviceList"]) != 0 :
+					print("Existem BTs...\n")
+					#call facial recognition on BT_json["deviceList"][0]["MAC"], BT_json["deviceList"][1]["MAC"]
+					#if authenticated OPEN DOOR, else doesn't
+			
 			##### END MAIN ALGORITHM #####
-
 raise_conn.close()
