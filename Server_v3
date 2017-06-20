@@ -41,9 +41,7 @@ def revalidate_client(serviceJSON):
 		"services" : [
 			serviceJSON["services"][0]["service_id"],
 			serviceJSON["services"][1]["service_id"],
-			serviceJSON["services"][2]["service_id"],
-			serviceJSON["services"][3]["service_id"],
-			serviceJSON["services"][4]["service_id"]
+			serviceJSON["services"][2]["service_id"]
 		]
 	})
 	headers = {"content-type": "application/json" , "Accept": "application/json"}
@@ -57,35 +55,28 @@ def register_service(clientID):
 	params = json.dumps({
 	  "services": [
 	    {
-	      "name": "Give password",
+	      "name": "Cadastro", 
 	      "parameters": {
-	        "name": "string"
+	        "name": "string",
+	        "password": "string",
+	        "MAC": "string",
+	        "faceURI": "string"
 	      },
 	      "return_type": "float"
 	    },
 	        {
-	      "name": "Give face`s URI",
+	      "name": "Estado da porta",
 	      "parameters": {
-	        "name": "string"
+	        "state": "bool"
 	      },
 	      "return_type": "float"
 	    },
 	    {
-	      "name": "Give MAC",
+	      "name": "Entrada",
 	      "parameters": {
 	        "name": "string"
 	      },
 	      "return_type": "float"
-	    },
-	    {
-	      "name": "Give door state",
-	      "parameters": {},
-	      "return_type": "bool"
-	    },
-	    {
-	      "name": "Person's name",
-	      "parameters": {},
-	      "return_type": "string []"
 	    }
 	  ],
 	  "tokenId": clientID,
@@ -101,12 +92,22 @@ def register_service(clientID):
 	data = json.loads(response.read().decode("utf-8"))
 	return data
 
-def register_data(serviceID,data):
+def register_data(clientID,serviceID,dataVal):
 	params = json.dumps({
-	  "name": "ControleAcesso"
+	  "token": clientID,
+	  "client_time": 342343242,
+	  "tag": [
+	    "Cebola"
+	  ],
+	  "data": [
+	    {
+	      "service_id": serviceID,
+	      "data_values": dataVal
+	    }
+	  ]
 	})
 	headers = {"content-type": "application/json" , "Accept": "application/json"}
-	raise_conn.request("POST", "/uiot-raise/client/register", params, headers)
+	raise_conn.request("POST", "/uiot-raise/data/register", params, headers)
 	sleep(0.5)
 	response = raise_conn.getresponse()
 	data = json.loads(response.read().decode("utf-8"))
@@ -137,23 +138,24 @@ def auto_register():
 	else:
 		print("Servico ja registrado")
 		service_JSON = json.loads(service_file_content)
-		data = revalidate_client(service_JSON)
-		print(data)
+		#data = revalidate_client(service_JSON)
+		#print(data)
 		# Substituindo o Token
-		client_file=open('cliente.txt','w')
-		client_file_content = client_file_content.replace(client_JSON['tokenId'],data['tokenId'])
-		client_file.write(client_file_content)
-		client_file.close()
+		#client_file=open('cliente.txt','w')
+		#client_file_content = client_file_content.replace(client_JSON['tokenId'],data['tokenId'])
+		#client_file.write(client_file_content)
+		#client_file.close()
 
-		service_file_content = service_file_content.replace(service_JSON['tokenId'],data['tokenId'])
-		service_file.close()
-		service_file=open('servicos.txt','w')
-		service_file.write(service_file_content)
+		#service_file_content = service_file_content.replace(service_JSON['tokenId'],data['tokenId'])
+		#service_file.close()
+		#service_file=open('servicos.txt','w')
+		#service_file.write(service_file_content)
 	service_file.close()
+	return service_JSON
 
 ######################## Initial Setup ###########################
 
-auto_register()
+services = auto_register()
 
 #Server Setup
 host = '127.0.0.1'
