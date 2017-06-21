@@ -331,6 +331,8 @@ while True:
 	print("Waiting for password...")
 	passwd = get_password()
 	print("Password received:", passwd)
+	cadastros = get_data(register_data(services["tokenId"],services["services"][0]["service_id"])
+	#iterar por cada cadastro procurando pela senha
 	if passwd == "123456":	#buscar o perfil no raise caso exista
 		print("Valid password") #atribuir o MAC address esperado e o URI da face esperada
 		mac_esperado = '2C:F0:A2:B4:3C:2B'
