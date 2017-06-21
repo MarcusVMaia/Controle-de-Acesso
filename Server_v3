@@ -153,7 +153,7 @@ def auto_register():
 	service_file.close()
 	return service_JSON
 
-def get_data(clientID,serviceID)
+def get_data(clientID,serviceID):
 	url="/uiot-raise/data/list?
 	url = url + "tokenId=" + clientID
 	url = url + "&service_id=" + serviceID
