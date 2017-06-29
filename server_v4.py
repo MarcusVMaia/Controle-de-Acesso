@@ -26,7 +26,6 @@ print("Esperando conexao com reconhecimento facial")
 connection, client_address = s.accept()
 connection.settimeout(0.5)
 
-
 #Bluetooth Setup
 perl = "/usr/bin/perl" #perl path
 perl_script = "./bluetooth.pl"	#script path
@@ -64,6 +63,7 @@ def register_client():
 	return data
 
 def revalidate_client(serviceJSON):
+	print("Revalidando token")
 	params = json.dumps({
 		"tokenId" : serviceJSON["tokenId"],
 		"services" : [
@@ -77,7 +77,14 @@ def revalidate_client(serviceJSON):
 	sleep(0.5)
 	response = raise_conn.getresponse()
 	data = json.loads(response.read().decode("utf-8"))
-	return data
+
+	#escrever no arquivo txt o novo tokenId
+	serviceJSON["tokenId"] = data["tokenId"]
+	service_file = open('servicos.txt','r+')
+	service_file.write(json.dumps(serviceJSON))
+	service_file.close()
+	return serviceJSON
+
 
 def register_service(clientID):
 	params = json.dumps({
@@ -133,12 +140,12 @@ def register_data(clientID,serviceID,dataVal):
 	    }
 	  ]
 	})
+	print(params)
 	headers = {"content-type": "application/json" , "Accept": "application/json"}
 	raise_conn.request("POST", "/uiot-raise/data/register", params, headers)
 	sleep(0.5)
 	response = raise_conn.getresponse()
 	data = json.loads(response.read().decode("utf-8"))
-	print(data)
 	return data['code']
 
 def auto_register():
@@ -158,14 +165,17 @@ def auto_register():
 	#Service Request
 	service_file = open('servicos.txt','r+')
 	service_file_content = service_file.read()
+	service_JSON = ""
 	if(service_file_content==''):
 		data = register_service(clientID)
 		service_file.write(json.dumps(data))
 		servicesID = data['services']
+		service_JSON = data
 		print(data['code'], data['message'], data['services'])
 	else:
 		print("Servico ja registrado")
 		service_JSON = json.loads(service_file_content)
+
 	service_file.close()
 	return service_JSON
 
@@ -177,6 +187,7 @@ def get_data(clientID,serviceID):
 	sleep(0.5)
 	response = raise_conn.getresponse()
 	data = json.loads(response.read().decode("utf-8"))
+	#print(data['code'])
 	return data
 
 
@@ -198,9 +209,9 @@ def main():
 		try:
 			####### PARTE DE CADASTRO
 			dataServer=connection.recv(50).decode("utf-8")
-			print(dataServer)
-			print("Cadastrando usuario")
 			if (len(dataServer) > 0):
+				print(dataServer)
+				print("Cadastrando usuario")
 				i = 0
 				pos = 0
 				aux = ""
@@ -229,7 +240,14 @@ def main():
 					"password":senha,
 					"MAC":bt,
 				}
-				code = register_data(services["tokenId"],services["services"][0]["service_id"],dados)
+				#enquanto nao for aceito, tenta cadastrar
+				while int(register_data(services["tokenId"],services["services"][0]["service_id"],dados)) != 200:
+					services = revalidate_client(services)
+			else:
+				connection.close()
+				print("reconhecimento facial desconectado")
+				#waitConnection()
+				#sleep(0.5)
 
 		except socket.timeout:
 
@@ -237,49 +255,74 @@ def main():
 
 			#print("Waiting for password...")
 
-			#passwd = get_password()
+			# passwd = 0
+			# passwd = input('Digite sua senha\n')
 			passwd = "123456"
+			#80:EA:96:D5:FD:D4
+
+			#passwd = get_password()
 			#print("Password received:", passwd)
 
-			# cadastros = get_data(services["tokenId"],services["services"][0]["service_id"])
-			# cadastros_dict = cadastros["values"]
-			# #pega todos cadastros
-			# for each in cadastros_dict:
-			# 	mac_esperado = each["MAC"]
-			# 	passwd_esperado = each["password"]
-			# 	name_esperado = each["name"]
+			cadastros = get_data(services["tokenId"],services["services"][0]["service_id"])
+			while int(cadastros['code']) != 200:
+				services = revalidate_client(services)
+				cadastros = get_data(services["tokenId"],services["services"][0]["service_id"])
 
-			mac_esperado = '2C:F0:A2:B4:3C:2B'
-			passwd_esperado = '123456'
-			name_esperado = "bruno"
-			check_facial(name_esperado)
+			cadastros_dict = cadastros["values"]
+
+			passwd_esperado = []
+			mac_esperado = []
+			name_esperado = []
+			#pega todos cadastros que tem a senha digitada e salva num array as informacoes
+			for eachPerson in cadastros_dict:
+				eachInformation = eachPerson["data_values"]
+				if eachInformation['password'] == passwd:
+					passwd_esperado.append(eachInformation['password'])
+					mac_esperado.append(eachInformation['MAC'])
+					name_esperado.append(eachInformation['name'])
+
+			if len(passwd_esperado) != 0:
+				print(mac_esperado)
+				print(passwd_esperado)
+				print(name_esperado)
+
+				# mac_esperado = '2C:F0:A2:B4:3C:2B'
+				# passwd_esperado = '123456'
+				# name_esperado = "bruno"
+
+				#iterar por cada cadastro procurando pelo bluetooth e reconhecimento
+				for i in range(len(passwd_esperado)):
+					print("Searching bluetooth...")
+					if(check_bluetooth(mac_esperado[i])): #buscar pelo bluetooth esperado
+						print("Bluetooth verified")
+						if(check_facial(name_esperado[i], services)):	#autenticar o rosto do individuo
+							print("Authenticated\nOpen door")
+							break
+
+						else:
+							print("Facial recognition failed")
+					else:
+						print("Bluetooth not found!")
+
+				print("Continuacao do loop")
+			else:
+				print("Ninguem cadastrado com essa senha")
+
+def waitConnection():
+	host = "127.0.0.1"
+	port = 5005
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	server_address = (host,port)
+	s.bind(server_address)
+	s.listen(1)
+	print("Esperando conexao com reconhecimento facial")
+	connection, client_address = s.accept()
+	connection.settimeout(0.5)
 
 
-			# #iterar por cada cadastro procurando pela senha
-			# if (passwd == passwd_esperado):	#buscar o perfil no raise caso exista
-			# 	print("Valid password") #atribuir o MAC address esperado e o URI da face esperada
-			#
-			# 	print("Searching bluetooth...")
-			# 	if(check_bluetooth(mac_esperado)): #buscar pelo bluetooth esperado
-			# 		print("Bluetooth verified")
-			# 		if(check_facial(name_esperado)):	#autenticar o rosto do individuo
-			# 			print("Authenticated\nOpen door")
-			# 			dados = {
-			# 				"name":nameRecognized
-			# 			}
-			# 			code = register_data(services["tokenId"],services["services"][2]["service_id"],dados)
-			# 		else:
-			# 			print("Facial recognition failed")
-			# 	else:
-			# 		print("Bluetooth not found!")
-			# else:
-			# 	print("Invalid password!")
-
-
-def check_facial(expectedName):
+def check_facial(expectedName, services):
 	print("Checking face...")
-	# client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	# server_address = ('localhost', 5510) #porta do servidor no reconhecimento facial
 	try:
 		# client.connect(server_address)
 		ask = b"ok"
@@ -287,6 +330,12 @@ def check_facial(expectedName):
 		nameRecognized = connection.recv(30).decode("utf-8")
 		print(nameRecognized)
 		if nameRecognized == expectedName:
+			dados = {
+				"name": nameRecognized,
+			}
+			print("Postando no servidor quem acabou de entrar")
+			while int(register_data(services["tokenId"],services["services"][2]["service_id"],dados)) != 200:
+				services = revalidate_client(services)
 			return True
 
 		return False
