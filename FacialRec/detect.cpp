@@ -172,7 +172,7 @@ void faceDetect( Mat& img )
                               Size(30, 30) );
 
     t = (double)cvGetTickCount() - t;
-    printf( "detection time = %g ms\n", t/((double)cvGetTickFrequency()*1000.) );
+    //printf( "detection time = %g ms\n", t/((double)cvGetTickFrequency()*1000.) );
 
     //so processa se for detectada uma face (condicao de contorno)
     if (faces.size() == 1 && testFace(faces[0], smallImg)){
@@ -250,7 +250,7 @@ void faceDetect( Mat& img )
 //            }
 
             t = (double)cvGetTickCount() - t;
-            printf( "detection time = %g ms\n", t/((double)cvGetTickFrequency()*1000.) );
+            //printf( "detection time = %g ms\n", t/((double)cvGetTickFrequency()*1000.) );
 
         }
 
